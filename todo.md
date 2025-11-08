@@ -144,3 +144,19 @@
 - [ ] Content sections expand smoothly as generated
 - [ ] Smooth fade-in/slide-up animations
 - [ ] Hide recent campaigns section initially
+
+
+---
+
+## 🎛️ AGENT SELECTION UI UPDATE (NEW REQUEST)
+
+### Feature: Toggleable Agent Cards Always Visible
+- [ ] Move agent cards from progressive disclosure to permanent section below campaign input
+- [ ] Add toggle switches (on/off) to each agent card
+- [ ] Display all 10 agents: Blog, Twitter, LinkedIn, YouTube, Medium, Reddit, Quora, Pinterest, Podcast, Video Shorts
+- [ ] Set Blog, Twitter, LinkedIn to ON by default
+- [ ] Set remaining 7 agents to OFF (disabled/coming soon state)
+- [ ] Update campaign launch logic to only use enabled agents
+- [ ] Add visual distinction between enabled and disabled agents (opacity, grayscale)
+- [ ] Store agent selection state in localStorage
+- [ ] Show "Coming Soon" badge on disabled agents
