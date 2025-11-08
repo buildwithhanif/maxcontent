@@ -160,3 +160,13 @@
 - [ ] Add visual distinction between enabled and disabled agents (opacity, grayscale)
 - [ ] Store agent selection state in localStorage
 - [ ] Show "Coming Soon" badge on disabled agents
+
+
+---
+
+## 🔄 NAVIGATION UPDATE (User Request)
+- [x] Change campaign launch behavior to navigate to dedicated campaign page instead of showing results at bottom
+- [x] Remove campaign results display from home page
+- [x] Keep home page clean with only campaign input and agent selection
+- [x] Ensure Demo Mode also navigates to campaign page
+- [x] Test navigation flow

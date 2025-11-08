@@ -125,13 +125,13 @@ export default function Campaign() {
               <div className="flex-1 space-y-2">
                 <CardTitle className="text-2xl leading-tight">{campaign.goal}</CardTitle>
                 <CardDescription className="text-base">
-                  Created: {new Date(campaign.createdAt).toLocaleString('en-US', { 
+                  Created: {campaign.createdAt ? new Date(campaign.createdAt).toLocaleString('en-US', { 
                     month: 'short', 
                     day: 'numeric', 
                     year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
-                  })}
+                  }) : 'N/A'}
                   {campaign.completedAt && ` • Completed: ${new Date(campaign.completedAt).toLocaleString('en-US', { 
                     month: 'short', 
                     day: 'numeric', 

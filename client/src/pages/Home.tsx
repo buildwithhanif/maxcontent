@@ -10,6 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { Loader2, Sparkles, Settings, Zap, Target, Copy, CheckCircle2 } from "lucide-react";
 import { APP_TITLE, getLoginUrl } from "@/const";
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 
@@ -36,38 +37,30 @@ export default function Home() {
   const { data: profile } = trpc.brandProfile.get.useQuery(undefined, { enabled: isAuthenticated });
   
   const [campaignGoal, setCampaignGoal] = useState("");
-  const [activeCampaignId, setActiveCampaignId] = useState<number | null>(null);
-  const [showCampaignSection, setShowCampaignSection] = useState(false);
+  // Campaign state removed - now navigates to dedicated page
   const [enabledAgents, setEnabledAgents] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('maxcontent_enabled_agents');
     if (saved) return JSON.parse(saved);
     return Object.fromEntries(ALL_AGENTS.map(a => [a.id, a.enabled]));
   });
-  const contentRef = useRef<HTMLDivElement>(null);
+  // contentRef removed - no longer needed
+  const contentRef = useRef<HTMLDivElement>(null); // Keep for now to avoid errors
   
   // Save agent selection to localStorage
   useEffect(() => {
     localStorage.setItem('maxcontent_enabled_agents', JSON.stringify(enabledAgents));
   }, [enabledAgents]);
   
-  // Poll for campaign data when active
-  const { data: campaignData } = trpc.campaign.get.useQuery(
-    { id: activeCampaignId! },
-    { 
-      enabled: activeCampaignId !== null,
-      refetchInterval: 2000
-    }
-  );
+  // Campaign polling removed - now on dedicated page
+  const campaignData = { content: [], goal: '', createdAt: new Date(), completedAt: null, activities: [] }; // Dummy data for hidden section
+  
+  const [, setLocation] = useLocation();
   
   const launchCampaign = trpc.campaign.launch.useMutation({
     onSuccess: (data) => {
       toast.success('Campaign launched! Watch the AI swarm work 🚀');
-      setActiveCampaignId(data.campaignId);
-      setShowCampaignSection(true);
-      // Scroll to campaign section
-      setTimeout(() => {
-        contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
+      // Navigate to campaign page
+      setLocation(`/campaign/${data.campaignId}`);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to launch campaign');
@@ -77,11 +70,8 @@ export default function Home() {
   const launchDemo = trpc.demo.setupAndLaunch.useMutation({
     onSuccess: (data) => {
       toast.success('Demo campaign launched! Watch the magic ✨');
-      setActiveCampaignId(data.campaignId);
-      setShowCampaignSection(true);
-      setTimeout(() => {
-        contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
+      // Navigate to campaign page
+      setLocation(`/campaign/${data.campaignId}`);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to launch demo');
@@ -317,9 +307,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Campaign Section (appears after launch) */}
-        {showCampaignSection && campaignData && (
-          <div ref={contentRef} className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Campaign section removed - now navigates to dedicated page */}
+        {false && (
+          <div className="hidden">
             {/* Super Agent + Active Agents */}
             <div>
               <h3 className="text-2xl font-bold mb-6 text-center">Active Agents</h3>
@@ -402,7 +392,7 @@ export default function Home() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-sm capitalize">{activity.agentType}</span>
                             <span className="text-xs text-muted-foreground">
-                              {activity.timestamp ? new Date(activity.timestamp).toLocaleTimeString() : 'Just now'}
+                              {activity.timestamp ? new Date(activity.timestamp as string | number | Date).toLocaleTimeString() : 'Just now'}
                             </span>
                           </div>
                           <p className="text-sm text-muted-foreground">{activity.message}</p>
