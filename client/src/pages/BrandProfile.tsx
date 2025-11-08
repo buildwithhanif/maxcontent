@@ -115,7 +115,7 @@ export default function BrandProfile() {
                 id="industry"
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                placeholder="e.g., SaaS, E-commerce, Healthcare"
+                placeholder="e.g., Enterprise AI Infrastructure"
               />
             </div>
 
@@ -125,7 +125,7 @@ export default function BrandProfile() {
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your company, mission, and what makes you unique..."
+                placeholder="e.g., Leading provider of sovereign AI infrastructure for government and financial institutions, enabling secure, compliant AI deployments with full data sovereignty"
                 rows={4}
               />
             </div>
@@ -136,7 +136,7 @@ export default function BrandProfile() {
                 id="productService"
                 value={formData.productService}
                 onChange={(e) => setFormData({ ...formData, productService: e.target.value })}
-                placeholder="What products or services do you offer?"
+                placeholder="e.g., Sovereign AI Infrastructure Platform - Private cloud AI deployment, regulatory compliance automation, secure model training environments, data sovereignty guarantees"
                 rows={3}
               />
             </div>
@@ -147,7 +147,7 @@ export default function BrandProfile() {
                 id="targetAudience"
                 value={formData.targetAudience}
                 onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                placeholder="Who is your ideal customer? Demographics, pain points, goals..."
+                placeholder="e.g., Government agencies, central banks, financial institutions, and regulated enterprises requiring sovereign AI capabilities with strict data residency and compliance requirements"
                 rows={3}
               />
             </div>
@@ -168,7 +168,7 @@ export default function BrandProfile() {
                 id="valuePropositions"
                 value={formData.valuePropositions}
                 onChange={(e) => setFormData({ ...formData, valuePropositions: e.target.value })}
-                placeholder="What are your 3-5 key value propositions?"
+                placeholder="e.g., Complete data sovereignty, regulatory compliance by design, enterprise-grade security, seamless integration with existing infrastructure, proven track record with government clients"
                 rows={3}
               />
             </div>
@@ -179,7 +179,7 @@ export default function BrandProfile() {
                 id="competitors"
                 value={formData.competitors}
                 onChange={(e) => setFormData({ ...formData, competitors: e.target.value })}
-                placeholder="List your main competitors"
+                placeholder="e.g., Palantir, Databricks Government Cloud, AWS GovCloud, Microsoft Azure Government"
               />
             </div>
 
@@ -189,7 +189,7 @@ export default function BrandProfile() {
                 id="marketingGoals"
                 value={formData.marketingGoals}
                 onChange={(e) => setFormData({ ...formData, marketingGoals: e.target.value })}
-                placeholder="What are your marketing objectives?"
+                placeholder="e.g., Establish thought leadership in sovereign AI space, generate qualified enterprise leads, build trust with government procurement teams"
                 rows={3}
               />
             </div>

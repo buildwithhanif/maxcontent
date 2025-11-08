@@ -18,11 +18,10 @@ import {
   createGeneratedContent,
   getDb,
 } from "./db";
-import { campaigns } from "../drizzle/schema";
+import { campaigns, brandProfiles } from "../drizzle/schema";
 import { buildBrandContext, generateContent, superAgentCreateStrategy, keywordResearcherAgent } from "./agents";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -36,11 +35,12 @@ export const appRouter = router({
   }),
 
   brandProfile: router({
-    get: protectedProcedure.query(async ({ ctx }) => {
-      const profile = await getBrandProfileByUserId(ctx.user.id);
+    get: publicProcedure.query(async ({ ctx }) => {
+      const userId = ctx.user?.id || 0;
+      const profile = await getBrandProfileByUserId(userId);
       return profile;
     }),
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         companyName: z.string().min(1),
         industry: z.string().optional(),
@@ -53,13 +53,14 @@ export const appRouter = router({
         marketingGoals: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const userId = ctx.user?.id || 0;
         const profileId = await createBrandProfile({
-          userId: ctx.user.id,
+          userId,
           ...input,
         });
         return { id: profileId };
       }),
-    update: protectedProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         companyName: z.string().min(1).optional(),
@@ -80,10 +81,11 @@ export const appRouter = router({
   }),
 
   campaign: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      return await getCampaignsByUserId(ctx.user.id);
+    list: publicProcedure.query(async ({ ctx }) => {
+      const userId = ctx.user?.id || 0;
+      return await getCampaignsByUserId(userId);
     }),
-    get: protectedProcedure
+    get: publicProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const campaign = await getCampaignById(input.id);
@@ -95,31 +97,38 @@ export const appRouter = router({
           content
         };
       }),
-    getContent: protectedProcedure
+    getContent: publicProcedure
       .input(z.object({ campaignId: z.number() }))
       .query(async ({ input }) => {
         return await getContentByCampaignId(input.campaignId);
       }),
-    getActivities: protectedProcedure
+    getActivities: publicProcedure
       .input(z.object({ campaignId: z.number() }))
       .query(async ({ input }) => {
         return await getActivitiesByCampaignId(input.campaignId);
       }),
-    launch: protectedProcedure
+    launch: publicProcedure
       .input(z.object({ 
         goal: z.string().min(1),
         brandProfileId: z.number()
       }))
       .mutation(async ({ ctx, input }) => {
-        // Get brand profile
-        const profile = await getBrandProfileByUserId(ctx.user.id);
+        const userId = ctx.user?.id || 0;
+        
+        // Get brand profile by ID directly
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const profileResult = await db.select().from(brandProfiles).where(eq(brandProfiles.id, input.brandProfileId)).limit(1);
+        const profile = profileResult[0];
+        
         if (!profile) {
           throw new Error("Brand profile not found");
         }
         
         // Create campaign
         const campaignId = await createCampaign({
-          userId: ctx.user.id,
+          userId,
           brandProfileId: input.brandProfileId,
           goal: input.goal,
           status: "running"
@@ -267,12 +276,12 @@ export const appRouter = router({
           } catch (error) {
             await updateCampaignStatus(campaignId, "failed" as any);
           }
-        })(); // Execute async function immediately but don't await
+        })();
         
         // Return immediately
         return { campaignId, success: true };
       }),
-    sendMessage: protectedProcedure
+    sendMessage: publicProcedure
       .input(z.object({
         campaignId: z.number(),
         message: z.string().min(1)
@@ -287,13 +296,19 @@ export const appRouter = router({
           status: null
         });
         
-        // Get campaign and brand profile for context
+        // Get campaign
         const campaign = await getCampaignById(input.campaignId);
         if (!campaign) {
           throw new Error("Campaign not found");
         }
         
-        const profile = await getBrandProfileByUserId(ctx.user.id);
+        // Get brand profile by campaign's brandProfileId
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const profileResult = await db.select().from(brandProfiles).where(eq(brandProfiles.id, campaign.brandProfileId)).limit(1);
+        const profile = profileResult[0];
+        
         if (!profile) {
           throw new Error("Brand profile not found");
         }
@@ -341,30 +356,33 @@ A user has sent you feedback. Acknowledge their message professionally and brief
   }),
 
   demo: router({
-    setupAndLaunch: protectedProcedure.mutation(async ({ ctx }) => {
+    setupAndLaunch: publicProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
+      const userId = ctx.user?.id || 0;
+
       // Create demo brand profile
       const demoProfile = {
-        userId: ctx.user.id,
-        companyName: 'TechFlow AI',
-        industry: 'B2B SaaS - Workflow Automation',
-        description: 'AI-powered workflow automation platform that helps mid-sized businesses achieve 10x productivity gains',
-        targetAudience: 'Operations Managers and IT Directors at mid-sized B2B companies (50-500 employees) struggling with manual processes and scaling challenges',
-        brandVoice: 'professional' as const,
-        valuePropositions: 'Achieve 10x workflow speed, reduce manual tasks by 90%, seamless integration with existing tools, enterprise-grade security',
-        keyDifferentiators: 'AI-powered intelligent automation (not just scripting), proven ROI metrics, white-glove onboarding',
-        marketingGoals: 'Increase brand awareness in the B2B automation space, generate qualified leads, establish thought leadership'
+        userId,
+        companyName: 'Senti Global',
+        industry: 'Enterprise AI Infrastructure',
+        description: 'Leading provider of sovereign AI infrastructure for government and financial institutions, enabling secure, compliant AI deployments with full data sovereignty',
+        productService: 'Sovereign AI Infrastructure Platform - Private cloud AI deployment, regulatory compliance automation, secure model training environments, data sovereignty guarantees',
+        targetAudience: 'Government agencies, central banks, financial institutions, and regulated enterprises requiring sovereign AI capabilities with strict data residency and compliance requirements',
+        brandVoice: 'Authoritative, visionary, technically credible - speaking to both C-suite decision makers and technical architects',
+        valuePropositions: 'Complete data sovereignty, regulatory compliance by design, enterprise-grade security, seamless integration with existing infrastructure, proven track record with government clients',
+        competitors: 'Palantir, Databricks Government Cloud, AWS GovCloud, Microsoft Azure Government',
+        marketingGoals: 'Establish thought leadership in sovereign AI space, generate qualified enterprise leads, build trust with government procurement teams'
       };
 
       const profileId = await createBrandProfile(demoProfile);
 
       // Launch demo GEO campaign
-      const demoCampaignGoal = 'Get cited by AI search engines (ChatGPT, Perplexity, Claude) as the authority on AI workflow automation for mid-sized businesses, focusing on ROI metrics and productivity gains';
+      const demoCampaignGoal = 'Get cited by AI search engines (ChatGPT, Perplexity, Claude, Gemini) as the authority on sovereign AI infrastructure for government and financial institutions';
       
       const campaignId = await createCampaign({
-        userId: ctx.user.id,
+        userId,
         brandProfileId: profileId,
         goal: demoCampaignGoal,
         status: 'running' as any
@@ -382,7 +400,8 @@ A user has sent you feedback. Acknowledge their message professionally and brief
           });
 
           // Get the full profile from database
-          const fullProfileForStrategy = await getBrandProfileByUserId(ctx.user.id);
+          const fullProfileResult = await db.select().from(brandProfiles).where(eq(brandProfiles.id, profileId)).limit(1);
+          const fullProfileForStrategy = fullProfileResult[0];
           if (!fullProfileForStrategy) throw new Error('Profile not found');
           const brandContext = buildBrandContext(fullProfileForStrategy);
           
@@ -445,10 +464,6 @@ A user has sent you feedback. Acknowledge their message professionally and brief
               message: `Working on: ${assignment.task}`
             });
 
-            // buildBrandContext expects full BrandProfile with all fields
-            const fullProfile = await getBrandProfileByUserId(ctx.user.id);
-            if (!fullProfile) throw new Error('Profile not found');
-            const brandContext = buildBrandContext(fullProfile);
             const content = await generateContent(normalizedAgent, assignment.task, brandContext);
             
             await createGeneratedContent({

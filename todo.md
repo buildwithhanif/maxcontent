@@ -316,3 +316,24 @@
 - [ ] Initialize git repository
 - [ ] Create initial commit with all project files
 - [ ] Provide push commands for user to deploy to GitHub
+
+
+---
+
+## 🚀 REPUBLISH WITH AUTH REMOVED (User Request)
+- [ ] Save new checkpoint with authentication removed
+- [ ] Publish new checkpoint to update live site
+- [ ] Verify maxcontent.manus.space no longer requires sign-in
+
+
+---
+
+## 🔓 REMOVE BACKEND AUTHENTICATION & ADD PLACEHOLDERS (User Request)
+- [x] Change all campaign routes from protectedProcedure to publicProcedure
+- [x] Remove userId dependency from campaign operations
+- [x] Make campaigns work without authentication
+- [x] Add Senti Global placeholder text to brand profile form fields
+- [x] Test Demo Mode works without authentication
+- [x] Test campaign creation and execution without sign-in
+- [x] Create checkpoint with changes
+- [ ] Republish to maxcontent.manus.space
