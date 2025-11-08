@@ -12,16 +12,16 @@ import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 
 const AGENT_CONFIGS = [
-  { id: "super", name: "Super Agent", icon: "🎯", description: "Campaign Orchestrator" },
-  { id: "blog", name: "Blog Agent", icon: "📝", description: "SEO-optimized articles" },
-  { id: "twitter", name: "Twitter Agent", icon: "🐦", description: "Viral threads" },
-  { id: "linkedin", name: "LinkedIn Agent", icon: "💼", description: "B2B content" },
-  { id: "youtube", name: "YouTube Agent", icon: "🎥", description: "Video descriptions" },
-  { id: "medium", name: "Medium Agent", icon: "📖", description: "Thought leadership" },
-  { id: "reddit", name: "Reddit Agent", icon: "🗣️", description: "Community engagement" },
-  { id: "quora", name: "Quora Agent", icon: "❓", description: "Q&A content" },
-  { id: "pinterest", name: "Pinterest Agent", icon: "📌", description: "Visual discovery" },
-  { id: "podcast", name: "Podcast Agent", icon: "🎙️", description: "Audio scripts" },
+  { id: "super", name: "Super Agent", icon: "🎯", description: "Campaign Orchestrator", gradient: "from-purple-500/20 to-indigo-500/20" },
+  { id: "blog", name: "Blog Agent", icon: "📝", description: "SEO-optimized articles", gradient: "from-blue-500/20 to-cyan-500/20" },
+  { id: "twitter", name: "Twitter Agent", icon: "🐦", description: "Viral threads", gradient: "from-sky-500/20 to-blue-500/20" },
+  { id: "linkedin", name: "LinkedIn Agent", icon: "💼", description: "B2B content", gradient: "from-indigo-500/20 to-purple-500/20" },
+  { id: "youtube", name: "YouTube Agent", icon: "🎥", description: "Video descriptions", gradient: "from-red-500/20 to-pink-500/20" },
+  { id: "medium", name: "Medium Agent", icon: "📖", description: "Thought leadership", gradient: "from-green-500/20 to-emerald-500/20" },
+  { id: "reddit", name: "Reddit Agent", icon: "🗣️", description: "Community engagement", gradient: "from-orange-500/20 to-red-500/20" },
+  { id: "quora", name: "Quora Agent", icon: "❓", description: "Q&A content", gradient: "from-rose-500/20 to-pink-500/20" },
+  { id: "pinterest", name: "Pinterest Agent", icon: "📌", description: "Visual discovery", gradient: "from-pink-500/20 to-rose-500/20" },
+  { id: "podcast", name: "Podcast Agent", icon: "🎙️", description: "Audio scripts", gradient: "from-violet-500/20 to-purple-500/20" },
 ];
 
 export default function Home() {
@@ -75,18 +75,22 @@ export default function Home() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Sparkles className="w-12 h-12 text-primary" />
+        <Card className="w-full max-w-md shadow-2xl">
+          <CardHeader className="text-center space-y-4 pb-8">
+            <div className="flex justify-center">
+              <div className="p-4 rounded-2xl bg-primary/10">
+                <Sparkles className="w-12 h-12 text-primary" />
+              </div>
             </div>
-            <CardTitle className="text-3xl">{APP_TITLE}</CardTitle>
-            <CardDescription className="text-lg mt-2">
-              AI Marketing Swarm for High-Quality Content Generation
-            </CardDescription>
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight">{APP_TITLE}</h1>
+              <p className="text-lg text-muted-foreground">
+                AI Marketing Swarm for High-Quality Content
+              </p>
+            </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-center mb-6">
+          <CardContent className="space-y-6">
+            <p className="text-muted-foreground text-center leading-relaxed">
               Generate coordinated, on-brand marketing content across 10+ platforms with context-driven AI agents.
             </p>
             <Button asChild className="w-full" size="lg">
@@ -101,37 +105,39 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold">{APP_TITLE}</h1>
+      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container flex items-center justify-between h-20">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sparkles className="w-6 h-6 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">{APP_TITLE}</h1>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/brand-profile">
-              <Button variant="outline" size="sm">
+              <Button variant="outline">
                 <Settings className="w-4 h-4 mr-2" />
                 Brand Profile
               </Button>
             </Link>
-            <span className="text-sm text-muted-foreground">{user?.name}</span>
+            <div className="text-sm text-muted-foreground font-medium">{user?.name}</div>
           </div>
         </div>
       </header>
 
-      <div className="container py-8">
+      <div className="container py-12 space-y-12">
         {/* Brand Profile Check */}
         {!profile && (
-          <Card className="mb-6 border-primary/50">
+          <Card className="border-primary/30 bg-primary/5">
             <CardHeader>
-              <CardTitle>Setup Required</CardTitle>
-              <CardDescription>
-                Please set up your brand profile first to ensure high-quality, on-brand content generation.
+              <CardTitle className="text-xl">Setup Required</CardTitle>
+              <CardDescription className="text-base">
+                Create your brand profile to ensure high-quality, on-brand content generation.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/brand-profile">
-                <Button>
+                <Button size="lg">
                   <Settings className="w-4 h-4 mr-2" />
                   Create Brand Profile
                 </Button>
@@ -141,106 +147,126 @@ export default function Home() {
         )}
 
         {/* Campaign Input */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Launch Campaign</CardTitle>
-            <CardDescription>
+        <Card className="shadow-lg border-border/50">
+          <CardHeader className="space-y-2 pb-6">
+            <CardTitle className="text-2xl">Launch Campaign</CardTitle>
+            <CardDescription className="text-base">
               Describe your campaign goal and let the AI swarm create coordinated content across all platforms.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="campaignGoal">Campaign Goal</Label>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="campaignGoal" className="text-base font-medium">Campaign Goal</Label>
                 <Input
                   id="campaignGoal"
                   placeholder='e.g., "Run a one-day awareness campaign for our new product"'
                   value={campaignGoal}
                   onChange={(e) => setCampaignGoal(e.target.value)}
-                  className="text-lg"
+                  className="h-12 text-base"
                 />
               </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => launchDemo.mutate()}
-                disabled={launchDemo.isPending}
-                variant="outline"
-                size="lg"
-                className="flex-1"
-              >
-                {launchDemo.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Launching Demo...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="mr-2 h-4 w-4" />
-                    Demo Mode
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleLaunch}
-                disabled={!campaignGoal.trim() || launchCampaign.isPending}
-                className="flex-1"
-                size="lg"
-              >
-                {launchCampaign.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Launching...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Launch Campaign
-                  </>
-                )}
-              </Button>
-            </div>
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => launchDemo.mutate()}
+                  disabled={launchDemo.isPending}
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 h-12"
+                >
+                  {launchDemo.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Launching Demo...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-5 w-5" />
+                      Demo Mode
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleLaunch}
+                  disabled={!campaignGoal.trim() || launchCampaign.isPending}
+                  className="flex-1 h-12 text-base font-semibold"
+                  size="lg"
+                >
+                  {launchCampaign.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Launching...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Launch Campaign
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Agent Status Grid */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Agent Swarm</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="space-y-6">
+          <h2 className="text-3xl font-bold tracking-tight">Agent Swarm</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {AGENT_CONFIGS.map((agent) => (
-              <Card key={agent.id} className="hover:border-primary/50 transition-colors">
-                <CardHeader className="pb-3">
+              <div
+                key={agent.id}
+                className={`group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br ${agent.gradient} backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-primary/50`}
+              >
+                <div className="absolute inset-0 bg-card/80 backdrop-blur-sm"></div>
+                <div className="relative p-6 space-y-4">
                   <div className="flex items-start justify-between">
-                    <div className="text-3xl">{agent.icon}</div>
-                    <Badge variant="outline" className="text-xs">
+                    <div className="text-5xl transform transition-transform duration-300 group-hover:scale-110">
+                      {agent.icon}
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs font-medium bg-background/50 backdrop-blur-sm"
+                    >
                       {agentStatuses[agent.id] || "Idle"}
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg">{agent.name}</CardTitle>
-                  <CardDescription className="text-sm">{agent.description}</CardDescription>
-                </CardHeader>
-              </Card>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-lg tracking-tight">{agent.name}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{agent.description}</p>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Recent Campaigns */}
         {campaigns && campaigns.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Recent Campaigns</h2>
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold tracking-tight">Recent Campaigns</h2>
             <div className="space-y-4">
               {campaigns.slice(0, 5).map((campaign) => (
                 <Link key={campaign.id} href={`/campaign/${campaign.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{campaign.goal}</CardTitle>
-                          <CardDescription>
-                            {new Date(campaign.createdAt).toLocaleDateString()}
+                  <Card className="hover:border-primary/50 hover:shadow-lg transition-all duration-200 cursor-pointer border-border/50">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-1">
+                          <CardTitle className="text-lg font-semibold leading-snug">{campaign.goal}</CardTitle>
+                          <CardDescription className="text-sm">
+                            {new Date(campaign.createdAt).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </CardDescription>
                         </div>
-                        <Badge variant={campaign.status === "completed" ? "default" : "secondary"}>
+                        <Badge 
+                          variant={campaign.status === "completed" ? "default" : campaign.status === "running" ? "secondary" : "outline"}
+                          className="font-medium"
+                        >
                           {campaign.status}
                         </Badge>
                       </div>
