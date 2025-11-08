@@ -2,6 +2,8 @@
 
 **Get Your Brand Cited by AI Search Engines**
 
+🚀 **Live Demo:** [https://maxcontent.onrender.com](https://maxcontent.onrender.com)
+
 MaxContent is an autonomous AI agent platform that creates citation-worthy, authoritative content optimized for Generative Engine Optimization (GEO). Deploy intelligent agents to research keywords, develop content strategies, and generate platform-specific content that gets cited by ChatGPT, Perplexity, Claude, and Gemini.
 
 ## 🎯 What is GEO (Generative Engine Optimization)?
@@ -39,6 +41,12 @@ Traditional SEO optimizes for Google's "10 blue links." GEO optimizes for AI sea
 
 ## 🚀 Quick Start
 
+### Try Demo Mode
+1. Visit [https://maxcontent.onrender.com](https://maxcontent.onrender.com)
+2. Click **"Demo Mode"** to see a pre-configured Senti Global campaign
+3. Watch AI agents research keywords and generate content in real-time
+4. No sign-up required!
+
 ### Prerequisites
 - Node.js 22+
 - pnpm
@@ -46,7 +54,7 @@ Traditional SEO optimizes for Google's "10 blue links." GEO optimizes for AI sea
 
 ### Installation
 
-```bash
+```shell
 # Clone the repository
 git clone https://github.com/buildwithhanif/maxcontent.git
 cd maxcontent
@@ -170,7 +178,7 @@ Frontend → trpc.campaign.launch.useMutation()
 
 ## 🧪 Development
 
-```bash
+```shell
 # Run development server with hot reload
 pnpm dev
 
@@ -188,16 +196,15 @@ pnpm start
 
 ## 🚢 Deployment
 
-### Option 1: Manus Platform (Recommended)
-1. Click "Publish" in Management UI
-2. Site goes live at `https://your-domain.manus.space`
-3. All environment variables auto-configured
+### Render (Recommended)
+1. Connect GitHub repository to Render
+2. Set environment variables in Render dashboard
+3. Build command: `pnpm install && pnpm run build`
+4. Start command: `node dist/index.js`
+5. Deploy!
 
-### Option 2: Vercel/Railway/Render
-1. Connect GitHub repository
-2. Set environment variables
-3. Deploy with build command: `pnpm build`
-4. Start command: `pnpm start`
+### Other Platforms
+Works on any Node.js hosting platform (Railway, Fly.io, etc.)
 
 ## 🤝 Contributing
 
@@ -216,3 +223,5 @@ MIT License - feel free to use this project for your own purposes.
 ---
 
 **Built by [@buildwithhanif](https://github.com/buildwithhanif)**
+
+**Live Demo:** [https://maxcontent.onrender.com](https://maxcontent.onrender.com)
