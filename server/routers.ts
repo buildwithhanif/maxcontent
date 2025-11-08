@@ -86,7 +86,14 @@ export const appRouter = router({
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
-        return await getCampaignById(input.id);
+        const campaign = await getCampaignById(input.id);
+        const activities = await getActivitiesByCampaignId(input.id);
+        const content = await getContentByCampaignId(input.id);
+        return {
+          ...campaign,
+          activities,
+          content
+        };
       }),
     getContent: protectedProcedure
       .input(z.object({ campaignId: z.number() }))

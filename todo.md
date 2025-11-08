@@ -117,3 +117,30 @@
 | Export feature | - | - | - | - | +10% | +10% |
 
 **Demo Mode has highest ROI** - implement first!
+
+
+---
+
+## 🎬 CINEMATIC UX TRANSFORMATION (Options 1 + 2 + 5)
+
+### Option 1: Single-Page Dashboard Experience
+- [ ] Remove separate campaign detail page - everything on home page
+- [ ] Display campaign content inline as it generates in real-time
+- [ ] Add live content feed below agent cards
+- [ ] Implement auto-scroll to new content
+- [ ] No page transitions - pure spectacle
+
+### Option 2: Live Agent Status Cards
+- [ ] Pulsing glow animation when agent is active
+- [ ] Real-time status updates: idle → working (pulsing) → completed
+- [ ] Progress rings or activity messages on cards
+- [ ] Mini content previews when agents complete
+- [ ] Click to expand and see specific output
+
+### Option 5: Progressive Disclosure
+- [ ] Hero section: ONLY campaign input + Demo Mode initially
+- [ ] Agent cards hidden, appear when campaign launches
+- [ ] Animate cards appearing one by one with delays
+- [ ] Content sections expand smoothly as generated
+- [ ] Smooth fade-in/slide-up animations
+- [ ] Hide recent campaigns section initially
