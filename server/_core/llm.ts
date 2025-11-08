@@ -265,6 +265,19 @@ const normalizeResponseFormat = ({
   };
 };
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+// Sleep helper for retry delays
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Check if error is retryable
+const isRetryableError = (status: number): boolean => {
+  // Retry on rate limits, server errors, and timeouts
+  return status === 429 || status >= 500 || status === 408;
+};
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
@@ -312,21 +325,51 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  // Retry logic with exponential backoff
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(resolveApiUrl(), {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${ENV.forgeApiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(
+          `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
+        );
+
+        // Check if we should retry
+        if (attempt < MAX_RETRIES && isRetryableError(response.status)) {
+          lastError = error;
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+          await sleep(delay);
+          continue; // Retry
+        }
+
+        throw error;
+      }
+
+      return (await response.json()) as InvokeResult;
+    } catch (error) {
+      // Network errors and other exceptions
+      if (attempt < MAX_RETRIES) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+        await sleep(delay);
+        continue; // Retry
+      }
+
+      throw error;
+    }
   }
 
-  return (await response.json()) as InvokeResult;
+  // If we've exhausted all retries
+  throw lastError || new Error("LLM invocation failed after retries");
 }

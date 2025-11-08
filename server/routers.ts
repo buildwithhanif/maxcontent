@@ -1,7 +1,5 @@
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import {
@@ -21,26 +19,19 @@ import {
 import { campaigns } from "../drizzle/schema";
 import { buildBrandContext, generateContent, superAgentCreateStrategy, keywordResearcherAgent } from "./agents";
 
+// Default user ID for demo purposes (no auth)
+const DEFAULT_USER_ID = 1;
+
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
-  auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
-  }),
 
   brandProfile: router({
-    get: protectedProcedure.query(async ({ ctx }) => {
-      const profile = await getBrandProfileByUserId(ctx.user.id);
+    get: publicProcedure.query(async () => {
+      const profile = await getBrandProfileByUserId(DEFAULT_USER_ID);
       return profile;
     }),
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         companyName: z.string().min(1),
         industry: z.string().optional(),
@@ -52,14 +43,14 @@ export const appRouter = router({
         competitors: z.string().optional(),
         marketingGoals: z.string().optional(),
       }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         const profileId = await createBrandProfile({
-          userId: ctx.user.id,
+          userId: DEFAULT_USER_ID,
           ...input,
         });
         return { id: profileId };
       }),
-    update: protectedProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         companyName: z.string().min(1).optional(),
@@ -80,10 +71,10 @@ export const appRouter = router({
   }),
 
   campaign: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      return await getCampaignsByUserId(ctx.user.id);
+    list: publicProcedure.query(async () => {
+      return await getCampaignsByUserId(DEFAULT_USER_ID);
     }),
-    get: protectedProcedure
+    get: publicProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const campaign = await getCampaignById(input.id);
@@ -95,31 +86,31 @@ export const appRouter = router({
           content
         };
       }),
-    getContent: protectedProcedure
+    getContent: publicProcedure
       .input(z.object({ campaignId: z.number() }))
       .query(async ({ input }) => {
         return await getContentByCampaignId(input.campaignId);
       }),
-    getActivities: protectedProcedure
+    getActivities: publicProcedure
       .input(z.object({ campaignId: z.number() }))
       .query(async ({ input }) => {
         return await getActivitiesByCampaignId(input.campaignId);
       }),
-    launch: protectedProcedure
-      .input(z.object({ 
+    launch: publicProcedure
+      .input(z.object({
         goal: z.string().min(1),
         brandProfileId: z.number()
       }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         // Get brand profile
-        const profile = await getBrandProfileByUserId(ctx.user.id);
+        const profile = await getBrandProfileByUserId(DEFAULT_USER_ID);
         if (!profile) {
           throw new Error("Brand profile not found");
         }
-        
+
         // Create campaign
         const campaignId = await createCampaign({
-          userId: ctx.user.id,
+          userId: DEFAULT_USER_ID,
           brandProfileId: input.brandProfileId,
           goal: input.goal,
           status: "running"
@@ -265,19 +256,27 @@ export const appRouter = router({
           status: "completed"
         });
           } catch (error) {
+            console.error('Campaign generation failed:', error);
             await updateCampaignStatus(campaignId, "failed" as any);
+            await createAgentActivity({
+              campaignId,
+              agentType: "super",
+              activityType: "status_update",
+              message: `Campaign failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              status: "failed"
+            });
           }
         })(); // Execute async function immediately but don't await
         
         // Return immediately
         return { campaignId, success: true };
       }),
-    sendMessage: protectedProcedure
+    sendMessage: publicProcedure
       .input(z.object({
         campaignId: z.number(),
         message: z.string().min(1)
       }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         // Store user message in activity feed
         await createAgentActivity({
           campaignId: input.campaignId,
@@ -286,14 +285,14 @@ export const appRouter = router({
           message: input.message,
           status: null
         });
-        
+
         // Get campaign and brand profile for context
         const campaign = await getCampaignById(input.campaignId);
         if (!campaign) {
           throw new Error("Campaign not found");
         }
-        
-        const profile = await getBrandProfileByUserId(ctx.user.id);
+
+        const profile = await getBrandProfileByUserId(DEFAULT_USER_ID);
         if (!profile) {
           throw new Error("Brand profile not found");
         }
@@ -332,7 +331,19 @@ A user has sent you feedback. Acknowledge their message professionally and brief
               status: "responding"
             });
           } catch (error) {
-            // Silently fail acknowledgment generation
+            console.error('Failed to generate acknowledgment:', error);
+            // Post a fallback acknowledgment
+            try {
+              await createAgentActivity({
+                campaignId: input.campaignId,
+                agentType: "super",
+                activityType: "message",
+                message: "Thank you for your feedback. I'll incorporate that into our campaign strategy.",
+                status: "responding"
+              });
+            } catch (fallbackError) {
+              console.error('Failed to post fallback acknowledgment:', fallbackError);
+            }
           }
         })();
         
@@ -341,13 +352,13 @@ A user has sent you feedback. Acknowledge their message professionally and brief
   }),
 
   demo: router({
-    setupAndLaunch: protectedProcedure.mutation(async ({ ctx }) => {
+    setupAndLaunch: publicProcedure.mutation(async () => {
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
       // Create demo brand profile
       const demoProfile = {
-        userId: ctx.user.id,
+        userId: DEFAULT_USER_ID,
         companyName: 'TechFlow AI',
         industry: 'B2B SaaS - Workflow Automation',
         description: 'AI-powered workflow automation platform that helps mid-sized businesses achieve 10x productivity gains',
@@ -362,9 +373,9 @@ A user has sent you feedback. Acknowledge their message professionally and brief
 
       // Launch demo GEO campaign
       const demoCampaignGoal = 'Get cited by AI search engines (ChatGPT, Perplexity, Claude) as the authority on AI workflow automation for mid-sized businesses, focusing on ROI metrics and productivity gains';
-      
+
       const campaignId = await createCampaign({
-        userId: ctx.user.id,
+        userId: DEFAULT_USER_ID,
         brandProfileId: profileId,
         goal: demoCampaignGoal,
         status: 'running' as any
@@ -382,7 +393,7 @@ A user has sent you feedback. Acknowledge their message professionally and brief
           });
 
           // Get the full profile from database
-          const fullProfileForStrategy = await getBrandProfileByUserId(ctx.user.id);
+          const fullProfileForStrategy = await getBrandProfileByUserId(DEFAULT_USER_ID);
           if (!fullProfileForStrategy) throw new Error('Profile not found');
           const brandContext = buildBrandContext(fullProfileForStrategy);
           
@@ -446,7 +457,7 @@ A user has sent you feedback. Acknowledge their message professionally and brief
             });
 
             // buildBrandContext expects full BrandProfile with all fields
-            const fullProfile = await getBrandProfileByUserId(ctx.user.id);
+            const fullProfile = await getBrandProfileByUserId(DEFAULT_USER_ID);
             if (!fullProfile) throw new Error('Profile not found');
             const brandContext = buildBrandContext(fullProfile);
             const content = await generateContent(normalizedAgent, assignment.task, brandContext);
@@ -478,7 +489,15 @@ A user has sent you feedback. Acknowledge their message professionally and brief
             message: `Campaign completed! Generated ${strategyResult.assignments.length} pieces of content.`
           });
         } catch (error) {
+          console.error('Demo campaign generation failed:', error);
           await updateCampaignStatus(campaignId, 'failed' as any);
+          await createAgentActivity({
+            campaignId,
+            agentType: 'super',
+            activityType: 'status_update',
+            message: `Campaign failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            status: 'failed'
+          });
         }
       })();
 

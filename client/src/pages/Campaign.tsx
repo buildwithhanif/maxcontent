@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -57,16 +56,6 @@ export default function Campaign() {
     { campaignId },
     { enabled: !!campaignId, refetchInterval: campaign?.status === "running" ? 2000 : false }
   );
-
-  useEffect(() => {
-    if (campaign?.status === "running") {
-      const interval = setInterval(() => {
-        refetchContent();
-        refetchActivities();
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [campaign?.status, refetchContent, refetchActivities]);
 
   const [chatMessage, setChatMessage] = useState("");
   const [isSending, setIsSending] = useState(false);

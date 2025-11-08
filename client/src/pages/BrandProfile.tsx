@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +11,6 @@ import { toast } from "sonner";
 import { Link } from "wouter";
 
 export default function BrandProfile() {
-  const { user } = useAuth();
   const { data: profile, isLoading, refetch } = trpc.brandProfile.get.useQuery();
   const createProfile = trpc.brandProfile.create.useMutation();
   const updateProfile = trpc.brandProfile.update.useMutation();

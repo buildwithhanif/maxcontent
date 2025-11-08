@@ -128,7 +128,6 @@ export async function createCampaign(campaign: InsertCampaign) {
   if (!db) throw new Error("Database not available");
   const result = await db.insert(campaigns).values(campaign);
   const id = Number((result[0] as any).insertId);
-  console.log("[createCampaign] Created campaign with ID:", id);
   return id;
 }
 
@@ -172,8 +171,6 @@ export async function getContentByCampaignId(campaignId: number) {
 export async function createAgentActivity(activity: InsertAgentActivity) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  console.log("[createAgentActivity] Received activity:", activity);
-  console.log("[createAgentActivity] campaignId type:", typeof activity.campaignId, "value:", activity.campaignId);
   if (isNaN(activity.campaignId)) {
     console.error("[createAgentActivity] ERROR: campaignId is NaN!");
     throw new Error(`Invalid campaignId: ${activity.campaignId}`);
