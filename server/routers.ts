@@ -19,7 +19,7 @@ import {
   getDb,
 } from "./db";
 import { campaigns } from "../drizzle/schema";
-import { buildBrandContext, generateContent, superAgentCreateStrategy } from "./agents";
+import { buildBrandContext, generateContent, superAgentCreateStrategy, keywordResearcherAgent } from "./agents";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -47,7 +47,7 @@ export const appRouter = router({
         description: z.string().optional(),
         productService: z.string().optional(),
         targetAudience: z.string().optional(),
-        brandVoice: z.enum(["professional", "casual", "friendly", "authoritative"]).default("professional"),
+        brandVoice: z.string().optional(),
         valuePropositions: z.string().optional(),
         competitors: z.string().optional(),
         marketingGoals: z.string().optional(),
@@ -67,7 +67,7 @@ export const appRouter = router({
         description: z.string().optional(),
         productService: z.string().optional(),
         targetAudience: z.string().optional(),
-        brandVoice: z.enum(["professional", "casual", "friendly", "authoritative"]).optional(),
+        brandVoice: z.string().optional(),
         valuePropositions: z.string().optional(),
         competitors: z.string().optional(),
         marketingGoals: z.string().optional(),
@@ -129,23 +129,55 @@ export const appRouter = router({
         (async () => {
           try {
         
-        // Log Super Agent activity
+        // Log GEO Master Agent activity
         await createAgentActivity({
           campaignId,
           agentType: "super",
           activityType: "status_update",
-          message: "Analyzing campaign goal and creating strategy...",
+          message: "Analyzing campaign goal and initiating keyword research...",
           status: "strategizing"
         });
         
         // Build brand context
         const brandContext = buildBrandContext(profile);
         
-        // Get strategy from Super Agent
-        const { strategy, assignments } = await superAgentCreateStrategy(input.goal, brandContext);
+        // Step 1: Keyword Research
+        await createAgentActivity({
+          campaignId,
+          agentType: "keyword_researcher",
+          activityType: "status_update",
+          message: "Analyzing AI search landscape and identifying high-opportunity keywords...",
+          status: "researching"
+        });
         
-        // Update campaign with strategy
+        const keywordResearch = await keywordResearcherAgent(input.goal, brandContext);
+        const keywordsStr = keywordResearch.keywords.map(k => k.keyword).join(", ");
+        
+        await createAgentActivity({
+          campaignId,
+          agentType: "keyword_researcher",
+          activityType: "message",
+          message: `Research complete. Identified ${keywordResearch.keywords.length} high-opportunity keywords:\n${keywordResearch.keywords.map(k => `• "${k.keyword}" - Citation Potential: ${k.citationPotential}, Competition: ${k.competition}\n  ${k.reasoning}`).join("\n")}\n\nRecommendation: ${keywordResearch.summary}`,
+          status: "completed"
+        });
+        
+        // Step 2: Get strategy from GEO Master Agent with keywords
+        await createAgentActivity({
+          campaignId,
+          agentType: "super",
+          activityType: "status_update",
+          message: "Creating GEO-optimized content strategy based on keyword research...",
+          status: "strategizing"
+        });
+        
+        const { strategy, assignments } = await superAgentCreateStrategy(input.goal, brandContext, keywordsStr);
+        
+        // Update campaign with strategy and keywords
         await updateCampaignStatus(campaignId, "running", strategy);
+        const dbConn = await getDb();
+        if (dbConn) {
+          await dbConn.update(campaigns).set({ keywords: keywordsStr }).where(eq(campaigns.id, campaignId));
+        }
         
         // Log strategy creation
         await createAgentActivity({
@@ -179,9 +211,7 @@ export const appRouter = router({
           
           // Generate content
           for (let i = 0; i < assignment.count; i++) {
-            // Normalize agent type (handle "Blog Agent" -> "blog")
             const agentType = assignment.agent.toLowerCase().replace(/ agent$/i, "").trim() as "blog" | "twitter" | "linkedin";
-            console.log(`[Campaign ${campaignId}] Normalized agent type: "${assignment.agent}" -> "${agentType}"`);
             
             const content = await generateContent(
               agentType,
@@ -220,10 +250,10 @@ export const appRouter = router({
         
         // Mark campaign as completed
         await updateCampaignStatus(campaignId, "completed");
-        const db = await getDb();
-        if (db) {
+        const dbConn2 = await getDb();
+        if (dbConn2) {
           const { campaigns } = await import("../drizzle/schema");
-          await db.update(campaigns).set({ estimatedReach: totalReach }).where(eq(campaigns.id, campaignId));
+          await dbConn2.update(campaigns).set({ estimatedReach: totalReach }).where(eq(campaigns.id, campaignId));
         }
         
         // Log completion
@@ -234,16 +264,79 @@ export const appRouter = router({
           message: `Campaign completed! Generated ${assignments.reduce((sum, a) => sum + a.count, 0)} pieces of content.`,
           status: "completed"
         });
-        
-            console.log(`[Campaign ${campaignId}] Completed successfully!`);
           } catch (error) {
-            console.error(`[Campaign ${campaignId}] Background generation failed:`, error);
-            await updateCampaignStatus(campaignId, "failed" as any).catch(console.error);
+            await updateCampaignStatus(campaignId, "failed" as any);
           }
         })(); // Execute async function immediately but don't await
         
         // Return immediately
         return { campaignId, success: true };
+      }),
+    sendMessage: protectedProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        message: z.string().min(1)
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Store user message in activity feed
+        await createAgentActivity({
+          campaignId: input.campaignId,
+          agentType: "user",
+          activityType: "message",
+          message: input.message,
+          status: null
+        });
+        
+        // Get campaign and brand profile for context
+        const campaign = await getCampaignById(input.campaignId);
+        if (!campaign) {
+          throw new Error("Campaign not found");
+        }
+        
+        const profile = await getBrandProfileByUserId(ctx.user.id);
+        if (!profile) {
+          throw new Error("Brand profile not found");
+        }
+        
+        // Trigger Super Agent acknowledgment in background
+        (async () => {
+          try {
+            const brandContext = buildBrandContext(profile);
+            
+            // Generate acknowledgment from Super Agent
+            const { invokeLLM } = await import("./_core/llm");
+            const response = await invokeLLM({
+              messages: [
+                {
+                  role: "system",
+                  content: `You are the Super Agent coordinating a marketing campaign. The campaign goal is: "${campaign.goal}". The strategy is: "${campaign.strategy || 'In progress'}".
+
+A user has sent you feedback. Acknowledge their message professionally and briefly explain how you'll incorporate it or what action you'll take. Keep your response to 1-2 sentences.`
+                },
+                {
+                  role: "user",
+                  content: input.message
+                }
+              ]
+            });
+            
+            const rawContent = response.choices[0]?.message?.content;
+            const acknowledgment = typeof rawContent === 'string' ? rawContent : "Thank you for your feedback. I'll take that into consideration.";
+            
+            // Post acknowledgment to activity feed
+            await createAgentActivity({
+              campaignId: input.campaignId,
+              agentType: "super",
+              activityType: "message",
+              message: acknowledgment,
+              status: "responding"
+            });
+          } catch (error) {
+            // Silently fail acknowledgment generation
+          }
+        })();
+        
+        return { success: true };
       }),
   }),
 
@@ -267,8 +360,8 @@ export const appRouter = router({
 
       const profileId = await createBrandProfile(demoProfile);
 
-      // Launch demo campaign
-      const demoCampaignGoal = 'Launch a one-day awareness campaign showcasing TechFlow AI\'s ability to automate 90% of manual tasks and achieve 10x productivity gains for mid-sized businesses';
+      // Launch demo GEO campaign
+      const demoCampaignGoal = 'Get cited by AI search engines (ChatGPT, Perplexity, Claude) as the authority on AI workflow automation for mid-sized businesses, focusing on ROI metrics and productivity gains';
       
       const campaignId = await createCampaign({
         userId: ctx.user.id,
@@ -280,29 +373,58 @@ export const appRouter = router({
       // Run campaign generation in background (same as regular launch)
       (async () => {
         try {
+          // Step 1: GEO Master initiates keyword research
           await createAgentActivity({
             campaignId,
             agentType: 'super',
             activityType: 'status_update',
-            message: 'Analyzing campaign goal and creating strategy...'
+            message: 'Analyzing campaign goal and initiating keyword research...'
           });
 
-          // Get the full profile from database to pass to buildBrandContext
+          // Get the full profile from database
           const fullProfileForStrategy = await getBrandProfileByUserId(ctx.user.id);
           if (!fullProfileForStrategy) throw new Error('Profile not found');
           const brandContext = buildBrandContext(fullProfileForStrategy);
-          const strategyResult = await superAgentCreateStrategy(demoCampaignGoal, brandContext);
+          
+          // Step 2: Keyword Researcher Agent
+          await createAgentActivity({
+            campaignId,
+            agentType: 'keyword_researcher',
+            activityType: 'status_update',
+            message: 'Analyzing AI search landscape for high-opportunity keywords...'
+          });
+          
+          const keywordResearch = await keywordResearcherAgent(demoCampaignGoal, brandContext);
+          const keywordsStr = keywordResearch.keywords.map(k => k.keyword).join(", ");
+          
+          await createAgentActivity({
+            campaignId,
+            agentType: 'keyword_researcher',
+            activityType: 'message',
+            message: `Research complete. Identified ${keywordResearch.keywords.length} high-opportunity keywords:\n${keywordResearch.keywords.map(k => `• "${k.keyword}" - Citation Potential: ${k.citationPotential}, Competition: ${k.competition}\n  ${k.reasoning}`).join("\n")}\n\nRecommendation: ${keywordResearch.summary}`
+          });
+          
+          // Step 3: GEO Master creates strategy with keywords
+          await createAgentActivity({
+            campaignId,
+            agentType: 'super',
+            activityType: 'status_update',
+            message: 'Creating GEO-optimized content strategy based on keyword research...'
+          });
+          
+          const strategyResult = await superAgentCreateStrategy(demoCampaignGoal, brandContext, keywordsStr);
           
           await createAgentActivity({
             campaignId,
             agentType: 'super',
             activityType: 'message',
-            message: `Strategy created: ${strategyResult.strategy}`
+            message: `GEO Strategy created: ${strategyResult.strategy}`
           });
 
           await db.update(campaigns)
             .set({ 
-              strategy: strategyResult.strategy
+              strategy: strategyResult.strategy,
+              keywords: keywordsStr
             })
             .where(eq(campaigns.id, campaignId));
 
@@ -356,8 +478,7 @@ export const appRouter = router({
             message: `Campaign completed! Generated ${strategyResult.assignments.length} pieces of content.`
           });
         } catch (error) {
-          console.error('[Demo Campaign] Error:', error);
-          await updateCampaignStatus(campaignId, 'failed' as any).catch(console.error);
+          await updateCampaignStatus(campaignId, 'failed' as any);
         }
       })();
 

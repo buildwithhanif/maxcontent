@@ -1,0 +1,1 @@
+ALTER TABLE `brandProfiles` MODIFY COLUMN `brandVoice` text;

@@ -1,4 +1,4 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+// Authentication removed
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,11 @@ import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 
 const ALL_AGENTS = [
-  { id: "blog", name: "Blog Agent", icon: "📝", description: "SEO-optimized articles", gradient: "from-blue-500/20 to-cyan-500/20", enabled: true },
-  { id: "twitter", name: "Twitter Agent", icon: "🐦", description: "Viral threads", gradient: "from-sky-500/20 to-blue-500/20", enabled: true },
-  { id: "linkedin", name: "LinkedIn Agent", icon: "💼", description: "B2B content", gradient: "from-indigo-500/20 to-purple-500/20", enabled: true },
+  { id: "blog", name: "Blog Agent", icon: "📝", description: "Authority articles (2000+ words)", gradient: "from-blue-500/20 to-cyan-500/20", enabled: true },
+  { id: "twitter", name: "Twitter Agent", icon: "🐦", description: "Thought leadership threads", gradient: "from-sky-500/20 to-blue-500/20", enabled: true },
+  { id: "linkedin", name: "LinkedIn Agent", icon: "💼", description: "Professional insights", gradient: "from-indigo-500/20 to-purple-500/20", enabled: true },
   { id: "youtube", name: "YouTube Agent", icon: "🎥", description: "Video descriptions", gradient: "from-red-500/20 to-pink-500/20", enabled: false },
-  { id: "medium", name: "Medium Agent", icon: "📖", description: "Thought leadership", gradient: "from-green-500/20 to-emerald-500/20", enabled: false },
+  { id: "medium", name: "Medium Agent", icon: "📖", description: "Deep-dive articles", gradient: "from-green-500/20 to-emerald-500/20", enabled: false },
   { id: "reddit", name: "Reddit Agent", icon: "🗣️", description: "Community engagement", gradient: "from-orange-500/20 to-red-500/20", enabled: false },
   { id: "quora", name: "Quora Agent", icon: "❓", description: "Q&A content", gradient: "from-rose-500/20 to-pink-500/20", enabled: false },
   { id: "pinterest", name: "Pinterest Agent", icon: "📌", description: "Visual discovery", gradient: "from-pink-500/20 to-rose-500/20", enabled: false },
@@ -28,13 +28,14 @@ const ALL_AGENTS = [
 ];
 
 const AGENT_CONFIGS = [
-  { id: "super", name: "Super Agent", icon: "🎯", description: "Campaign Orchestrator", gradient: "from-purple-500/20 to-indigo-500/20" },
+  { id: "super", name: "GEO Master", icon: "🎯", description: "Campaign Orchestrator", gradient: "from-purple-500/20 to-indigo-500/20" },
+  { id: "keyword_researcher", name: "Keyword Researcher", icon: "🔍", description: "AI query analysis", gradient: "from-emerald-500/20 to-teal-500/20", required: true },
   ...ALL_AGENTS,
 ];
 
 export default function Home() {
-  const { user, loading, isAuthenticated } = useAuth();
-  const { data: profile } = trpc.brandProfile.get.useQuery(undefined, { enabled: isAuthenticated });
+  // Authentication removed - public access
+  const { data: profile } = trpc.brandProfile.get.useQuery();
   
   const [campaignGoal, setCampaignGoal] = useState("");
   // Campaign state removed - now navigates to dedicated page
@@ -124,29 +125,7 @@ export default function Home() {
     });
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <h1 className="text-4xl font-bold mb-4">{APP_TITLE}</h1>
-          <p className="text-muted-foreground mb-8">
-            Launch autonomous AI agents to create coordinated marketing campaigns
-          </p>
-          <Button size="lg" asChild>
-            <a href={getLoginUrl()}>Sign In to Continue</a>
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Authentication removed - public access
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,7 +134,7 @@ export default function Home() {
         <div className="container mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-2xl">✨</div>
-            <h1 className="text-xl font-bold tracking-tight">{APP_TITLE}</h1>
+            <h1 className="text-xl font-bold tracking-tight">MaxContent - GEO Agent</h1>
           </div>
           <div className="flex items-center gap-4">
             {profile && (
@@ -171,9 +150,9 @@ export default function Home() {
             </Button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
-                {user?.name?.[0] || 'U'}
+                U
               </div>
-              <span className="text-sm font-medium">{user?.name}</span>
+              <span className="text-sm font-medium">User</span>
             </div>
           </div>
         </div>
@@ -184,11 +163,10 @@ export default function Home() {
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center mb-16">
           <h2 className="text-5xl font-bold tracking-tight mb-6">
-            Launch Your AI Marketing Swarm
+            Get Your Brand Cited by AI Search Engines
           </h2>
           <p className="text-xl text-muted-foreground mb-12">
-            Describe your campaign goal and watch autonomous AI agents create coordinated,
-            on-brand content across multiple platforms.
+            Deploy autonomous AI agents to create citation-worthy, authoritative content optimized for ChatGPT, Perplexity, Claude, and Gemini. Get discovered when millions search with AI.
           </p>
 
           {/* Campaign Input */}
@@ -196,10 +174,10 @@ export default function Home() {
             <CardContent className="pt-8">
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <Label htmlFor="goal" className="text-base font-semibold">Campaign Goal</Label>
+                  <Label htmlFor="goal" className="text-base font-semibold">GEO Campaign Goal</Label>
                   <Input
                     id="goal"
-                    placeholder='e.g., "Run a one-day awareness campaign for our new product"'
+                    placeholder='e.g., "Get cited as the authority on AI workflow automation for mid-sized businesses"'
                     value={campaignGoal}
                     onChange={(e) => setCampaignGoal(e.target.value)}
                     className="h-12 text-base"
@@ -255,13 +233,37 @@ export default function Home() {
         {/* AI Agent Selection */}
         <div className="max-w-6xl mx-auto mb-16">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold mb-2">AI Agent Swarm</h3>
+            <h3 className="text-2xl font-bold mb-2">GEO Agent Swarm</h3>
             <p className="text-muted-foreground">
-              Select which agents will participate in your campaign
+              Select which agents will create citation-worthy content for your campaign
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {/* Keyword Researcher - Always Required */}
+            <Card className="relative bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/50">
+              <CardContent className="p-5">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="text-4xl">🔍</div>
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-sm">Keyword Researcher</h4>
+                    <p className="text-xs text-muted-foreground">AI query analysis</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="default" className="text-xs bg-emerald-600">
+                      REQUIRED
+                    </Badge>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Runs automatically
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Content Agents */}
             {ALL_AGENTS.map((agent) => {
               const isEnabled = enabledAgents[agent.id];
               const isAvailable = agent.enabled; // Default enabled state

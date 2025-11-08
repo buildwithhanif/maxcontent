@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Link } from "wouter";
 
 export default function BrandProfile() {
   const { user } = useAuth();
@@ -22,7 +23,7 @@ export default function BrandProfile() {
     description: "",
     productService: "",
     targetAudience: "",
-    brandVoice: "professional" as "professional" | "casual" | "friendly" | "authoritative",
+    brandVoice: "",
     valuePropositions: "",
     competitors: "",
     marketingGoals: "",
@@ -36,7 +37,7 @@ export default function BrandProfile() {
         description: profile.description || "",
         productService: profile.productService || "",
         targetAudience: profile.targetAudience || "",
-        brandVoice: profile.brandVoice || "professional",
+        brandVoice: profile.brandVoice || "",
         valuePropositions: profile.valuePropositions || "",
         competitors: profile.competitors || "",
         marketingGoals: profile.marketingGoals || "",
@@ -70,7 +71,24 @@ export default function BrandProfile() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <div className="text-2xl">✨</div>
+            <h1 className="text-xl font-bold tracking-tight">MaxContent - GEO Agent</h1>
+          </div>
+        </div>
+      </header>
+      
+      <div className="container max-w-4xl py-8">
       <Card>
         <CardHeader>
           <CardTitle>Brand Context Profile</CardTitle>
@@ -136,20 +154,12 @@ export default function BrandProfile() {
 
             <div className="space-y-2">
               <Label htmlFor="brandVoice">Brand Voice</Label>
-              <Select
+              <Input
+                id="brandVoice"
                 value={formData.brandVoice}
-                onValueChange={(value: any) => setFormData({ ...formData, brandVoice: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="casual">Casual</SelectItem>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                  <SelectItem value="authoritative">Authoritative</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(e) => setFormData({ ...formData, brandVoice: e.target.value })}
+                placeholder="e.g., Authoritative, visionary, and technically credible"
+              />
             </div>
 
             <div className="space-y-2">
@@ -201,6 +211,7 @@ export default function BrandProfile() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

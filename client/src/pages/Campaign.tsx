@@ -5,14 +5,15 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Copy, Loader2, Sparkles, Target } from "lucide-react";
-import { useEffect } from "react";
+import { ArrowLeft, Copy, Loader2, Send, Sparkles, Target } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "wouter";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 
 const AGENT_ICONS: Record<string, string> = {
   super: "🎯",
+  keyword_researcher: "🔍",
   blog: "📝",
   twitter: "🐦",
   linkedin: "💼",
@@ -22,6 +23,20 @@ const AGENT_ICONS: Record<string, string> = {
   quora: "❓",
   pinterest: "📌",
   podcast: "🎙️",
+};
+
+const AGENT_NAMES: Record<string, string> = {
+  super: "GEO Master Agent",
+  keyword_researcher: "Keyword Researcher Agent",
+  blog: "Blog Agent",
+  twitter: "Twitter Agent",
+  linkedin: "LinkedIn Agent",
+  youtube: "YouTube Agent",
+  medium: "Medium Agent",
+  reddit: "Reddit Agent",
+  quora: "Quora Agent",
+  pinterest: "Pinterest Agent",
+  podcast: "Podcast Agent",
 };
 
 export default function Campaign() {
@@ -52,6 +67,39 @@ export default function Campaign() {
       return () => clearInterval(interval);
     }
   }, [campaign?.status, refetchContent, refetchActivities]);
+
+  const [chatMessage, setChatMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  
+  const sendMessageMutation = trpc.campaign.sendMessage.useMutation({
+    onSuccess: () => {
+      setChatMessage("");
+      setIsSending(false);
+      toast.success("Message sent!");
+      // Immediately refetch to show user message
+      refetchActivities();
+    },
+    onError: (error) => {
+      setIsSending(false);
+      toast.error("Failed to send message: " + error.message);
+    }
+  });
+  
+  const handleSendMessage = () => {
+    if (!chatMessage.trim() || isSending) return;
+    setIsSending(true);
+    sendMessageMutation.mutate({
+      campaignId,
+      message: chatMessage.trim()
+    });
+  };
+  
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   const copyContent = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -145,6 +193,32 @@ export default function Campaign() {
           </CardHeader>
         </Card>
 
+        {/* Keyword Research Results */}
+        {campaign.keywords && (
+          <Card className="mb-4 border-emerald-500/30 bg-emerald-500/5">
+            <CardHeader className="pb-3 pt-4">
+              <div className="flex items-center gap-2">
+                <div className="text-lg">🔍</div>
+                <CardTitle className="text-base">Target Keywords (Discovered by AI)</CardTitle>
+              </div>
+              <CardDescription className="text-xs">High-opportunity keywords for AI search engine citations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {campaign.keywords.split(", ").map((keyword: string, idx: number) => (
+                  <Badge 
+                    key={idx} 
+                    variant="outline" 
+                    className="px-3 py-1 bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                  >
+                    {keyword}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Two-Column Layout: Activity Feed (Left) + Generated Content (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" style={{ height: 'calc(100vh - 240px)' }}>
           {/* Activity Feed Column */}
@@ -162,11 +236,11 @@ export default function Campaign() {
                       className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                     >
                       <div className="text-xl shrink-0">
-                        {AGENT_ICONS[activity.agentType] || "🤖"}
+                        {activity.agentType === "user" ? "👤" : (AGENT_ICONS[activity.agentType] || "🤖")}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-xs capitalize">{activity.agentType}</span>
+                          <span className="font-semibold text-xs">{activity.agentType === "user" ? "You" : (AGENT_NAMES[activity.agentType] || activity.agentType)}</span>
                           <span className="text-xs text-muted-foreground">
                             {activity.createdAt ? new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                           </span>
@@ -182,6 +256,27 @@ export default function Campaign() {
                 )}
               </div>
             </CardContent>
+            <div className="border-t border-border/50 p-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Send feedback to agents..."
+                  disabled={isSending}
+                  className="flex-1 px-3 py-2 text-xs rounded-lg bg-muted/30 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleSendMessage}
+                  disabled={!chatMessage.trim() || isSending}
+                  className="h-9 w-9 p-0"
+                >
+                  {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
           </Card>
 
           {/* Generated Content Column */}

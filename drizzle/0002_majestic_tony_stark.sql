@@ -1,0 +1,2 @@
+ALTER TABLE `generatedContent` MODIFY COLUMN `agentType` enum('keyword_researcher','blog','youtube','video_shorts','medium','linkedin','reddit','twitter','quora','pinterest','podcast') NOT NULL;--> statement-breakpoint
+ALTER TABLE `campaigns` ADD `keywords` text;

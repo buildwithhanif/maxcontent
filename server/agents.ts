@@ -78,36 +78,40 @@ Marketing Goals: ${profile.marketingGoals || "Not specified"}
  */
 export async function superAgentCreateStrategy(
   campaignGoal: string,
-  brandContext: string
+  brandContext: string,
+  keywords?: string
 ): Promise<{
   strategy: string;
+  keywords: string;
   assignments: Array<{ agent: string; task: string; count: number }>;
 }> {
-  const prompt = `You are the Super Agent, a master campaign strategist for an AI marketing swarm.
+  const keywordContext = keywords ? `\n\nTARGET KEYWORDS (from Keyword Researcher): ${keywords}` : '';
+  
+  const prompt = `You are the GEO Master Agent, an expert in Generative Engine Optimization (GEO) - optimizing content to be cited by AI search engines like ChatGPT, Perplexity, Claude, and Gemini.
 
-${brandContext}
+${brandContext}${keywordContext}
 
 CAMPAIGN GOAL: ${campaignGoal}
 
 Your task:
 1. Analyze the campaign goal and brand context
-2. Create a comprehensive multi-platform content strategy
+2. Create a GEO-optimized content strategy focused on becoming the cited authority
 3. Assign specific tasks to specialized content agents (blog, twitter, linkedin)
 
-For this hackathon demo, focus on 3 core agents:
-- Blog Agent: SEO-optimized long-form content
-- Twitter Agent: Viral threads and engagement
-- LinkedIn Agent: B2B professional content
+Focus on creating citation-worthy, authoritative content:
+- Blog Agent: Long-form authority content (2000+ words) optimized for AI citation
+- Twitter Agent: Thought leadership threads that establish topical authority
+- LinkedIn Agent: Professional insights AI engines cite for business queries
 
 IMPORTANT: Generate ONLY 1 piece of content per agent for faster execution.
 
 Respond in JSON format:
 {
-  "strategy": "2-3 sentence strategy overview",
+  "strategy": "2-3 sentence GEO strategy overview focusing on citation potential",
   "assignments": [
-    { "agent": "blog", "task": "specific task description", "count": 1 },
-    { "agent": "twitter", "task": "specific task description", "count": 1 },
-    { "agent": "linkedin", "task": "specific task description", "count": 1 }
+    { "agent": "blog", "task": "specific task description with keyword integration", "count": 1 },
+    { "agent": "twitter", "task": "specific task description with keyword integration", "count": 1 },
+    { "agent": "linkedin", "task": "specific task description with keyword integration", "count": 1 }
   ]
 }`;
 
@@ -125,6 +129,7 @@ Respond in JSON format:
           type: "object",
           properties: {
             strategy: { type: "string" },
+            keywords: { type: "string" },
             assignments: {
               type: "array",
               items: {
@@ -139,7 +144,7 @@ Respond in JSON format:
               }
             }
           },
-          required: ["strategy", "assignments"],
+          required: ["strategy", "keywords", "assignments"],
           additionalProperties: false
         }
       }
@@ -160,11 +165,8 @@ export async function generateContent(
   task: string,
   brandContext: string
 ): Promise<{ title: string; body: string; metadata?: string }> {
-  console.log("[generateContent] Called with agentType:", agentType);
   const config = AGENT_CONFIGS[agentType];
   if (!config) {
-    console.error("[generateContent] Invalid agent type:", agentType);
-    console.error("[generateContent] Available types:", Object.keys(AGENT_CONFIGS));
     throw new Error(`Invalid agent type: ${agentType}. Must be one of: ${Object.keys(AGENT_CONFIGS).join(", ")}`);
   }
   
@@ -205,6 +207,90 @@ Respond in JSON format:
             metadata: { type: "string" }
           },
           required: ["title", "body"],
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
+  const content = response.choices[0].message.content;
+  const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+  const result = JSON.parse(contentStr || "{}");
+  return result;
+}
+
+
+/**
+ * Keyword Researcher Agent - Analyzes AI search landscape and identifies high-opportunity keywords
+ */
+export async function keywordResearcherAgent(
+  campaignGoal: string,
+  brandContext: string
+): Promise<{
+  keywords: Array<{ keyword: string; citationPotential: string; competition: string; reasoning: string }>;
+  summary: string;
+}> {
+  const prompt = `You are the Keyword Researcher Agent, an expert in analyzing AI search engine queries and identifying high-opportunity keywords for Generative Engine Optimization (GEO).
+
+${brandContext}
+
+CAMPAIGN GOAL: ${campaignGoal}
+
+Your task:
+1. Analyze what queries users ask AI engines (ChatGPT, Perplexity, Claude, Gemini) related to this campaign goal
+2. Identify 3-5 high-opportunity keywords/queries where the brand can become the cited authority
+3. Evaluate each keyword's citation potential and competition level
+4. Provide strategic reasoning for each keyword
+
+Focus on:
+- Keywords with high citation potential (AI engines frequently cite sources for these queries)
+- Low to medium competition (gaps where no clear authority exists yet)
+- Alignment with brand expertise and unique value propositions
+- Queries that require authoritative, data-driven answers
+
+Respond in JSON format:
+{
+  "keywords": [
+    {
+      "keyword": "specific keyword or query phrase",
+      "citationPotential": "High/Medium/Low",
+      "competition": "High/Medium/Low",
+      "reasoning": "1-2 sentence explanation of why this keyword is valuable"
+    }
+  ],
+  "summary": "2-3 sentence summary of the keyword research findings and recommended focus"
+}`;
+
+  const response = await invokeLLM({
+    messages: [
+      { role: "system", content: "You are an expert keyword researcher specializing in GEO. Always respond in valid JSON format." },
+      { role: "user", content: prompt }
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "keyword_research",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            keywords: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  keyword: { type: "string" },
+                  citationPotential: { type: "string" },
+                  competition: { type: "string" },
+                  reasoning: { type: "string" }
+                },
+                required: ["keyword", "citationPotential", "competition", "reasoning"],
+                additionalProperties: false
+              }
+            },
+            summary: { type: "string" }
+          },
+          required: ["keywords", "summary"],
           additionalProperties: false
         }
       }
