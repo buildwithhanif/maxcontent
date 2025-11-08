@@ -1,7 +1,23 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import {
+  createBrandProfile,
+  getBrandProfileByUserId,
+  updateBrandProfile,
+  getCampaignsByUserId,
+  getCampaignById,
+  getContentByCampaignId,
+  getActivitiesByCampaignId,
+  createCampaign,
+  updateCampaignStatus,
+  createAgentActivity,
+  createGeneratedContent,
+  getDb,
+} from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -17,12 +33,198 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  brandProfile: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const profile = await getBrandProfileByUserId(ctx.user.id);
+      return profile;
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        companyName: z.string().min(1),
+        industry: z.string().optional(),
+        description: z.string().optional(),
+        productService: z.string().optional(),
+        targetAudience: z.string().optional(),
+        brandVoice: z.enum(["professional", "casual", "friendly", "authoritative"]).default("professional"),
+        valuePropositions: z.string().optional(),
+        competitors: z.string().optional(),
+        marketingGoals: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const profileId = await createBrandProfile({
+          userId: ctx.user.id,
+          ...input,
+        });
+        return { id: profileId };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        companyName: z.string().min(1).optional(),
+        industry: z.string().optional(),
+        description: z.string().optional(),
+        productService: z.string().optional(),
+        targetAudience: z.string().optional(),
+        brandVoice: z.enum(["professional", "casual", "friendly", "authoritative"]).optional(),
+        valuePropositions: z.string().optional(),
+        competitors: z.string().optional(),
+        marketingGoals: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...updates } = input;
+        await updateBrandProfile(id, updates);
+        return { success: true };
+      }),
+  }),
+
+  campaign: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return await getCampaignsByUserId(ctx.user.id);
+    }),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await getCampaignById(input.id);
+      }),
+    getContent: protectedProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        return await getContentByCampaignId(input.campaignId);
+      }),
+    getActivities: protectedProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        return await getActivitiesByCampaignId(input.campaignId);
+      }),
+    launch: protectedProcedure
+      .input(z.object({ 
+        goal: z.string().min(1),
+        brandProfileId: z.number()
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Import agent functions
+        const { superAgentCreateStrategy, generateContent, buildBrandContext } = await import("./agents");
+        const { getBrandProfileByUserId } = await import("./db");
+        
+        // Get brand profile
+        const profile = await getBrandProfileByUserId(ctx.user.id);
+        if (!profile) {
+          throw new Error("Brand profile not found");
+        }
+        
+        // Create campaign
+        const campaignId = await createCampaign({
+          userId: ctx.user.id,
+          brandProfileId: input.brandProfileId,
+          goal: input.goal,
+          status: "running"
+        });
+        
+        // Log Super Agent activity
+        await createAgentActivity({
+          campaignId,
+          agentType: "super",
+          activityType: "status_update",
+          message: "Analyzing campaign goal and creating strategy...",
+          status: "strategizing"
+        });
+        
+        // Build brand context
+        const brandContext = buildBrandContext(profile);
+        
+        // Get strategy from Super Agent
+        const { strategy, assignments } = await superAgentCreateStrategy(input.goal, brandContext);
+        
+        // Update campaign with strategy
+        await updateCampaignStatus(campaignId, "running", strategy);
+        
+        // Log strategy creation
+        await createAgentActivity({
+          campaignId,
+          agentType: "super",
+          activityType: "message",
+          message: `Strategy created: ${strategy}`,
+          status: "delegating"
+        });
+        
+        // Generate content for each assignment
+        let totalReach = 0;
+        for (const assignment of assignments) {
+          // Log task delegation
+          await createAgentActivity({
+            campaignId,
+            agentType: "super",
+            activityType: "message",
+            message: `Assigning to ${assignment.agent}: ${assignment.task}`,
+            status: "delegating"
+          });
+          
+          // Update agent status
+          await createAgentActivity({
+            campaignId,
+            agentType: assignment.agent,
+            activityType: "status_update",
+            message: `Working on: ${assignment.task}`,
+            status: "generating"
+          });
+          
+          // Generate content
+          for (let i = 0; i < assignment.count; i++) {
+            const content = await generateContent(
+              assignment.agent as "blog" | "twitter" | "linkedin",
+              assignment.task,
+              brandContext
+            );
+            
+            // Estimate reach based on platform
+            const estimatedReach = assignment.agent === "blog" ? 1000 : 
+                                  assignment.agent === "twitter" ? 500 : 800;
+            totalReach += estimatedReach;
+            
+            // Save generated content
+            await createGeneratedContent({
+              campaignId,
+              agentType: assignment.agent as any,
+              platform: assignment.agent,
+              contentType: assignment.agent === "blog" ? "article" : 
+                          assignment.agent === "twitter" ? "thread" : "post",
+              title: content.title,
+              body: content.body,
+              metadata: content.metadata,
+              estimatedReach
+            });
+            
+            // Log content generation
+            await createAgentActivity({
+              campaignId,
+              agentType: assignment.agent,
+              activityType: "content_generated",
+              message: `Generated: ${content.title}`,
+              status: "completed"
+            });
+          }
+        }
+        
+        // Mark campaign as completed
+        await updateCampaignStatus(campaignId, "completed");
+        const db = await getDb();
+        if (db) {
+          const { campaigns } = await import("../drizzle/schema");
+          await db.update(campaigns).set({ estimatedReach: totalReach }).where(eq(campaigns.id, campaignId));
+        }
+        
+        // Log completion
+        await createAgentActivity({
+          campaignId,
+          agentType: "super",
+          activityType: "status_update",
+          message: `Campaign completed! Generated ${assignments.reduce((sum, a) => sum + a.count, 0)} pieces of content.`,
+          status: "completed"
+        });
+        
+        return { campaignId, success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,6 +1,18 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, 
+  users, 
+  brandProfiles, 
+  InsertBrandProfile,
+  campaigns,
+  Campaign,
+  InsertCampaign,
+  generatedContent,
+  InsertGeneratedContent,
+  agentActivities,
+  InsertAgentActivity
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +101,80 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Brand Profile queries
+export async function createBrandProfile(profile: InsertBrandProfile) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(brandProfiles).values(profile);
+  return Number((result as any).insertId);
+}
+
+export async function getBrandProfileByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(brandProfiles).where(eq(brandProfiles.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateBrandProfile(id: number, profile: Partial<InsertBrandProfile>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(brandProfiles).set(profile).where(eq(brandProfiles.id, id));
+}
+
+// Campaign queries
+export async function createCampaign(campaign: InsertCampaign) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(campaigns).values(campaign);
+  return Number((result as any).insertId);
+}
+
+export async function getCampaignById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(campaigns).where(eq(campaigns.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getCampaignsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(campaigns).where(eq(campaigns.userId, userId)).orderBy(campaigns.createdAt);
+}
+
+export async function updateCampaignStatus(id: number, status: Campaign["status"], strategy?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updates: Partial<InsertCampaign> = { status };
+  if (strategy) updates.strategy = strategy;
+  if (status === "completed") updates.completedAt = new Date();
+  await db.update(campaigns).set(updates).where(eq(campaigns.id, id));
+}
+
+// Generated Content queries
+export async function createGeneratedContent(content: InsertGeneratedContent) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(generatedContent).values(content);
+  return Number((result as any).insertId);
+}
+
+export async function getContentByCampaignId(campaignId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(generatedContent).where(eq(generatedContent.campaignId, campaignId)).orderBy(generatedContent.createdAt);
+}
+
+// Agent Activity queries
+export async function createAgentActivity(activity: InsertAgentActivity) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(agentActivities).values(activity);
+}
+
+export async function getActivitiesByCampaignId(campaignId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agentActivities).where(eq(agentActivities.campaignId, campaignId)).orderBy(agentActivities.createdAt);
+}
