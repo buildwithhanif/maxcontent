@@ -1,0 +1,28 @@
+{
+  "query": "SELECT c.id, c.goal, c.status, COUNT(gc.id) as content_count FROM campaigns c LEFT JOIN generatedContent gc ON c.id = gc.campaignId GROUP BY c.id ORDER BY c.id DESC LIMIT 3",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pttCZf1K6Lkcze.a638f55efd0b --database UoRpyWqSXWU6nyqgnnrN75 --execute SELECT c.id, c.goal, c.status, COUNT(gc.id) as content_count FROM campaigns c LEFT JOIN generatedContent gc ON c.id = gc.campaignId GROUP BY c.id ORDER BY c.id DESC LIMIT 3",
+  "rows": [
+    {
+      "id": "11",
+      "goal": "Quick test - awareness campaign",
+      "status": "running",
+      "content_count": "0"
+    },
+    {
+      "id": "10",
+      "goal": "Final working test - launch awareness campaign",
+      "status": "running",
+      "content_count": "0"
+    },
+    {
+      "id": "9",
+      "goal": "Simple test",
+      "status": "running",
+      "content_count": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tgoal\tstatus\tcontent_count\n11\tQuick test - awareness campaign\trunning\t0\n10\tFinal working test - launch awareness campaign\trunning\t0\n9\tSimple test\trunning\t0\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

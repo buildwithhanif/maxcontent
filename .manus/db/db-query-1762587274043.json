@@ -1,0 +1,25 @@
+{
+  "query": "SELECT id, goal, status FROM campaigns ORDER BY id DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pttCZf1K6Lkcze.a638f55efd0b --database UoRpyWqSXWU6nyqgnnrN75 --execute SELECT id, goal, status FROM campaigns ORDER BY id DESC LIMIT 3;",
+  "rows": [
+    {
+      "id": "4",
+      "goal": "Debug test campaign",
+      "status": "running"
+    },
+    {
+      "id": "3",
+      "goal": "Test campaign for TechFlow AI",
+      "status": "running"
+    },
+    {
+      "id": "2",
+      "goal": "Create awareness campaign for TechFlow AI automation platform",
+      "status": "running"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tgoal\tstatus\n4\tDebug test campaign\trunning\n3\tTest campaign for TechFlow AI\trunning\n2\tCreate awareness campaign for TechFlow AI automation platform\trunning\n",
+  "stderr": "",
+  "execution_time_ms": 70
+}

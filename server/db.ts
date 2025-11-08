@@ -106,7 +106,7 @@ export async function createBrandProfile(profile: InsertBrandProfile) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(brandProfiles).values(profile);
-  return Number((result as any).insertId);
+  return Number((result[0] as any).insertId);
 }
 
 export async function getBrandProfileByUserId(userId: number) {
@@ -127,7 +127,9 @@ export async function createCampaign(campaign: InsertCampaign) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(campaigns).values(campaign);
-  return Number((result as any).insertId);
+  const id = Number((result[0] as any).insertId);
+  console.log("[createCampaign] Created campaign with ID:", id);
+  return id;
 }
 
 export async function getCampaignById(id: number) {
@@ -157,7 +159,7 @@ export async function createGeneratedContent(content: InsertGeneratedContent) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(generatedContent).values(content);
-  return Number((result as any).insertId);
+  return Number((result[0] as any).insertId);
 }
 
 export async function getContentByCampaignId(campaignId: number) {
@@ -170,6 +172,12 @@ export async function getContentByCampaignId(campaignId: number) {
 export async function createAgentActivity(activity: InsertAgentActivity) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  console.log("[createAgentActivity] Received activity:", activity);
+  console.log("[createAgentActivity] campaignId type:", typeof activity.campaignId, "value:", activity.campaignId);
+  if (isNaN(activity.campaignId)) {
+    console.error("[createAgentActivity] ERROR: campaignId is NaN!");
+    throw new Error(`Invalid campaignId: ${activity.campaignId}`);
+  }
   await db.insert(agentActivities).values(activity);
 }
 

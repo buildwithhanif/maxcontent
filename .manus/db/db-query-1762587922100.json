@@ -1,0 +1,9 @@
+{
+  "query": "SELECT COUNT(*) as content_count, campaignId FROM generatedContent GROUP BY campaignId ORDER BY campaignId DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pttCZf1K6Lkcze.a638f55efd0b --database UoRpyWqSXWU6nyqgnnrN75 --execute SELECT COUNT(*) as content_count, campaignId FROM generatedContent GROUP BY campaignId ORDER BY campaignId DESC LIMIT 5",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 52
+}

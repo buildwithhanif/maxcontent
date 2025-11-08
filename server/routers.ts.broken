@@ -18,7 +18,6 @@ import {
   createGeneratedContent,
   getDb,
 } from "./db";
-import { buildBrandContext, generateContent, superAgentCreateStrategy } from "./agents";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -98,11 +97,17 @@ export const appRouter = router({
         return await getActivitiesByCampaignId(input.campaignId);
       }),
     launch: protectedProcedure
-      .input(z.object({ 
-        goal: z.string().min(1),
+      .input(z.object({
+        goal: z.string(),
         brandProfileId: z.number()
       }))
       .mutation(async ({ ctx, input }) => {
+        // Import agent functions
+        const { buildBrandContext, superAgentCreateStrategy, generateContent } = await import("./agents");
+        // Import agent functions
+        const { superAgentCreateStrategy, generateContent, buildBrandContext } = await import("./agents");
+        const { getBrandProfileByUserId } = await import("./db");
+        
         // Get brand profile
         const profile = await getBrandProfileByUserId(ctx.user.id);
         if (!profile) {
@@ -117,38 +122,49 @@ export const appRouter = router({
           status: "running"
         });
         
-        // Run content generation in background (don't await)
+        // Run campaign generation in background (don't await)
         (async () => {
           try {
-        
-        // Log Super Agent activity
-        await createAgentActivity({
-          campaignId,
-          agentType: "super",
-          activityType: "status_update",
-          message: "Analyzing campaign goal and creating strategy...",
-          status: "strategizing"
-        });
-        
-        // Build brand context
-        const brandContext = buildBrandContext(profile);
+            // Log Super Agent activity
+            await createAgentActivity({
+              campaignId,
+              agentType: "super",
+              activityType: "status_update",
+              message: "Analyzing campaign goal and creating strategy...",
+              status: "strategizing"
+            });
+            
+            // Build brand context
+            const brandContext = buildBrandContext(profile);
         
         // Get strategy from Super Agent
         const { strategy, assignments } = await superAgentCreateStrategy(input.goal, brandContext);
         
         // Update campaign with strategy
         await updateCampaignStatus(campaignId, "running", strategy);
+                   // Log completion
+            await createAgentActivity({
+              campaignId,
+              agentType: "super",
+              activityType: "status_update",
+              message: "Campaign completed successfully!",
+              status: "completed"
+            });
+          } catch (error) {
+            console.error("Campaign generation error:", error);
+            await updateCampaignStatus(campaignId, "failed");
+            await createAgentActivity({
+              campaignId,
+              agentType: "super",
+              activityType: "status_update",
+              message: `Campaign failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              status: "failed"
+            });
+          }
+        })();
         
-        // Log strategy creation
-        await createAgentActivity({
-          campaignId,
-          agentType: "super",
-          activityType: "message",
-          message: `Strategy created: ${strategy}`,
-          status: "delegating"
-        });
-        
-        // Generate content for each assignment
+        // Return immediately
+        return { campaignId };or each assignment
         let totalReach = 0;
         for (const assignment of assignments) {
           // Log task delegation
@@ -171,12 +187,8 @@ export const appRouter = router({
           
           // Generate content
           for (let i = 0; i < assignment.count; i++) {
-            // Normalize agent type (handle "Blog Agent" -> "blog")
-            const agentType = assignment.agent.toLowerCase().replace(/ agent$/i, "").trim() as "blog" | "twitter" | "linkedin";
-            console.log(`[Campaign ${campaignId}] Normalized agent type: "${assignment.agent}" -> "${agentType}"`);
-            
             const content = await generateContent(
-              agentType,
+              assignment.agent as "blog" | "twitter" | "linkedin",
               assignment.task,
               brandContext
             );
@@ -227,14 +239,6 @@ export const appRouter = router({
           status: "completed"
         });
         
-            console.log(`[Campaign ${campaignId}] Completed successfully!`);
-          } catch (error) {
-            console.error(`[Campaign ${campaignId}] Background generation failed:`, error);
-            await updateCampaignStatus(campaignId, "failed" as any).catch(console.error);
-          }
-        })(); // Execute async function immediately but don't await
-        
-        // Return immediately
         return { campaignId, success: true };
       }),
   }),

@@ -99,13 +99,15 @@ For this hackathon demo, focus on 3 core agents:
 - Twitter Agent: Viral threads and engagement
 - LinkedIn Agent: B2B professional content
 
+IMPORTANT: Generate ONLY 1 piece of content per agent for faster execution.
+
 Respond in JSON format:
 {
   "strategy": "2-3 sentence strategy overview",
   "assignments": [
-    { "agent": "blog", "task": "specific task description", "count": 1-2 },
-    { "agent": "twitter", "task": "specific task description", "count": 3-5 },
-    { "agent": "linkedin", "task": "specific task description", "count": 2-3 }
+    { "agent": "blog", "task": "specific task description", "count": 1 },
+    { "agent": "twitter", "task": "specific task description", "count": 1 },
+    { "agent": "linkedin", "task": "specific task description", "count": 1 }
   ]
 }`;
 
@@ -154,11 +156,17 @@ Respond in JSON format:
  * Generate content with a specialized agent
  */
 export async function generateContent(
-  agentType: keyof typeof AGENT_CONFIGS,
+  agentType: "blog" | "twitter" | "linkedin",
   task: string,
   brandContext: string
 ): Promise<{ title: string; body: string; metadata?: string }> {
+  console.log("[generateContent] Called with agentType:", agentType);
   const config = AGENT_CONFIGS[agentType];
+  if (!config) {
+    console.error("[generateContent] Invalid agent type:", agentType);
+    console.error("[generateContent] Available types:", Object.keys(AGENT_CONFIGS));
+    throw new Error(`Invalid agent type: ${agentType}. Must be one of: ${Object.keys(AGENT_CONFIGS).join(", ")}`);
+  }
   
   const prompt = `You are the ${config.name}, a ${config.role}.
 

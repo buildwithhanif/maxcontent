@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as content_count FROM generatedContent WHERE campaignId = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pttCZf1K6Lkcze.a638f55efd0b --database UoRpyWqSXWU6nyqgnnrN75 --execute SELECT COUNT(*) as content_count FROM generatedContent WHERE campaignId = 1;",
+  "rows": [
+    {
+      "content_count": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "content_count\n0\n",
+  "stderr": "",
+  "execution_time_ms": 50
+}
