@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Sparkles, Settings } from "lucide-react";
+import { Loader2, Sparkles, Settings, Zap } from "lucide-react";
 import { APP_TITLE, getLoginUrl } from "@/const";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -31,16 +31,26 @@ export default function Home() {
   
   const [campaignGoal, setCampaignGoal] = useState("");
   const [agentStatuses, setAgentStatuses] = useState<Record<string, string>>({});
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   
   const launchCampaign = trpc.campaign.launch.useMutation({
     onSuccess: (data) => {
-      toast.success("Campaign launched successfully!");
-      setLocation(`/campaign/${data.campaignId}`);
+      toast.success('Campaign launched successfully!');
+      navigate(`/campaign/${data.campaignId}`);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to launch campaign");
-    }
+      toast.error(error.message || 'Failed to launch campaign');
+    },
+  });
+
+  const launchDemo = trpc.demo.setupAndLaunch.useMutation({
+    onSuccess: (data) => {
+      toast.success('Demo campaign launched! Watch the AI swarm in action 🚀');
+      navigate(`/campaign/${data.campaignId}`);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to launch demo');
+    },
   });
   
   const handleLaunch = () => {
@@ -150,24 +160,45 @@ export default function Home() {
                   className="text-lg"
                 />
               </div>
-              <Button 
-                size="lg" 
-                className="w-full"
-                disabled={!profile || !campaignGoal.trim() || launchCampaign.isPending}
+            <div className="flex gap-3">
+              <Button
+                onClick={() => launchDemo.mutate()}
+                disabled={launchDemo.isPending}
+                variant="outline"
+                size="lg"
+                className="flex-1"
+              >
+                {launchDemo.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Launching Demo...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Demo Mode
+                  </>
+                )}
+              </Button>
+              <Button
                 onClick={handleLaunch}
+                disabled={!campaignGoal.trim() || launchCampaign.isPending}
+                className="flex-1"
+                size="lg"
               >
                 {launchCampaign.isPending ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Launching...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5 mr-2" />
+                    <Sparkles className="mr-2 h-4 w-4" />
                     Launch Campaign
                   </>
                 )}
               </Button>
+            </div>
             </div>
           </CardContent>
         </Card>

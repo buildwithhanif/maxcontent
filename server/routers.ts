@@ -18,6 +18,7 @@ import {
   createGeneratedContent,
   getDb,
 } from "./db";
+import { campaigns } from "../drizzle/schema";
 import { buildBrandContext, generateContent, superAgentCreateStrategy } from "./agents";
 
 export const appRouter = router({
@@ -237,6 +238,124 @@ export const appRouter = router({
         // Return immediately
         return { campaignId, success: true };
       }),
+  }),
+
+  demo: router({
+    setupAndLaunch: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      // Create demo brand profile
+      const demoProfile = {
+        userId: ctx.user.id,
+        companyName: 'TechFlow AI',
+        industry: 'B2B SaaS - Workflow Automation',
+        description: 'AI-powered workflow automation platform that helps mid-sized businesses achieve 10x productivity gains',
+        targetAudience: 'Operations Managers and IT Directors at mid-sized B2B companies (50-500 employees) struggling with manual processes and scaling challenges',
+        brandVoice: 'professional' as const,
+        valuePropositions: 'Achieve 10x workflow speed, reduce manual tasks by 90%, seamless integration with existing tools, enterprise-grade security',
+        keyDifferentiators: 'AI-powered intelligent automation (not just scripting), proven ROI metrics, white-glove onboarding',
+        marketingGoals: 'Increase brand awareness in the B2B automation space, generate qualified leads, establish thought leadership'
+      };
+
+      const profileId = await createBrandProfile(demoProfile);
+
+      // Launch demo campaign
+      const demoCampaignGoal = 'Launch a one-day awareness campaign showcasing TechFlow AI\'s ability to automate 90% of manual tasks and achieve 10x productivity gains for mid-sized businesses';
+      
+      const campaignId = await createCampaign({
+        userId: ctx.user.id,
+        brandProfileId: profileId,
+        goal: demoCampaignGoal,
+        status: 'running' as any
+      });
+
+      // Run campaign generation in background (same as regular launch)
+      (async () => {
+        try {
+          await createAgentActivity({
+            campaignId,
+            agentType: 'super',
+            activityType: 'status_update',
+            message: 'Analyzing campaign goal and creating strategy...'
+          });
+
+          // Get the full profile from database to pass to buildBrandContext
+          const fullProfileForStrategy = await getBrandProfileByUserId(ctx.user.id);
+          if (!fullProfileForStrategy) throw new Error('Profile not found');
+          const brandContext = buildBrandContext(fullProfileForStrategy);
+          const strategyResult = await superAgentCreateStrategy(demoCampaignGoal, brandContext);
+          
+          await createAgentActivity({
+            campaignId,
+            agentType: 'super',
+            activityType: 'message',
+            message: `Strategy created: ${strategyResult.strategy}`
+          });
+
+          await db.update(campaigns)
+            .set({ 
+              strategy: strategyResult.strategy
+            })
+            .where(eq(campaigns.id, campaignId));
+
+          for (const assignment of strategyResult.assignments) {
+            const normalizedAgent = assignment.agent.toLowerCase().replace(' agent', '').replace('agent', '').trim() as 'blog' | 'twitter' | 'linkedin';
+            
+            await createAgentActivity({
+              campaignId,
+              agentType: 'super',
+              activityType: 'message',
+              message: `Assigning to ${assignment.agent.toLowerCase()}: ${assignment.task}`
+            });
+
+            await createAgentActivity({
+              campaignId,
+              agentType: normalizedAgent,
+              activityType: 'status_update',
+              message: `Working on: ${assignment.task}`
+            });
+
+            // buildBrandContext expects full BrandProfile with all fields
+            const fullProfile = await getBrandProfileByUserId(ctx.user.id);
+            if (!fullProfile) throw new Error('Profile not found');
+            const brandContext = buildBrandContext(fullProfile);
+            const content = await generateContent(normalizedAgent, assignment.task, brandContext);
+            
+            await createGeneratedContent({
+              campaignId,
+              agentType: normalizedAgent,
+              platform: normalizedAgent,
+              contentType: 'article',
+              title: content.title,
+              body: content.body,
+              metadata: content.metadata || '',
+              estimatedReach: 1000
+            });
+
+            await createAgentActivity({
+              campaignId,
+              agentType: normalizedAgent,
+              activityType: 'content_generated',
+              message: `Generated: ${content.title}`
+            });
+          }
+
+          await updateCampaignStatus(campaignId, 'completed' as any);
+          await createAgentActivity({
+            campaignId,
+            agentType: 'super',
+            activityType: 'message',
+            message: `Campaign completed! Generated ${strategyResult.assignments.length} pieces of content.`
+          });
+        } catch (error) {
+          console.error('[Demo Campaign] Error:', error);
+          await updateCampaignStatus(campaignId, 'failed' as any).catch(console.error);
+        }
+      })();
+
+      return { success: true, campaignId, profileId };
+    })
   }),
 });
 

@@ -1,0 +1,21 @@
+{
+  "query": "SELECT * FROM campaigns WHERE id = 30002",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pttCZf1K6Lkcze.a638f55efd0b --database UoRpyWqSXWU6nyqgnnrN75 --execute SELECT * FROM campaigns WHERE id = 30002",
+  "rows": [
+    {
+      "id": "30002",
+      "userId": "1",
+      "brandProfileId": "30001",
+      "goal": "Launch a one-day awareness campaign showcasing TechFlow AI's ability to automate 90% of manual tasks and achieve 10x productivity gains for mid-sized businesses",
+      "status": "failed",
+      "strategy": "NULL",
+      "estimatedReach": "NULL",
+      "createdAt": "2025-11-08 08:13:22",
+      "completedAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tbrandProfileId\tgoal\tstatus\tstrategy\testimatedReach\tcreatedAt\tcompletedAt\n30002\t1\t30001\tLaunch a one-day awareness campaign showcasing TechFlow AI's ability to automate 90% of manual tasks and achieve 10x productivity gains for mid-sized businesses\tfailed\tNULL\tNULL\t2025-11-08 08:13:22\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 52
+}
